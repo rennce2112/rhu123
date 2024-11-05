@@ -1,0 +1,144 @@
+document.addEventListener('DOMContentLoaded', () => {
+    generateTimeSlots();
+    fetchReservations(); // Fetch reservations on page load
+    blockLunchSlots();
+    setInterval(fetchReservations, 1000); // Refresh every 1 second
+});
+
+function generateTimeSlots() {
+    const calendarBody = document.getElementById('calendar-body');
+    const startHour = 7;  // Start time (7 AM)
+    const endHour = 17;   // End time (5 PM)
+    calendarBody.innerHTML = '';
+
+    for (let hour = startHour; hour <= endHour; hour++) {
+        const row = document.createElement('tr');
+        const timeCell = document.createElement('td');
+        timeCell.textContent = `${hour}:00`; 
+        row.appendChild(timeCell);
+
+        for (let day = 0; day < 7; day++) {
+            const cell = document.createElement('td');
+            cell.classList.add('available');
+            cell.setAttribute('data-time', `${hour}:00`);
+            cell.setAttribute('data-date', getDateString(day));
+            cell.onclick = () => handleTimeSlotClick(cell);
+            row.appendChild(cell);
+        }
+
+        calendarBody.appendChild(row);
+    }
+
+    const timeSelect = document.getElementById('Time');
+    timeSelect.innerHTML = '<option value="">Select a time</option>';
+    for (let hour = startHour; hour <= endHour; hour++) {
+        timeSelect.innerHTML += `<option value="${hour}:00">${hour}:00</option>`;
+    }
+}
+
+function handleTimeSlotClick(cell) {
+    if (cell.classList.contains('available')) {
+        const selectedTime = cell.getAttribute('data-time');
+        const selectedDate = cell.getAttribute('data-date');
+        document.getElementById('Time').value = selectedTime; 
+        document.getElementById('Date').value = selectedDate; 
+    } else {
+        alert('This time slot is already reserved.');
+    }
+}
+
+async function fetchReservations() {
+    try {
+        const response = await fetch('http://localhost/navigation%20bar/server/availability_data.php');
+        const availabilityData = await response.json();
+
+        console.log('Availability data:', availabilityData); // Debug log to confirm data structure
+
+        // Clear previous reservations before applying new ones
+        document.querySelectorAll('.reserved, .partially-reserved').forEach(cell => {
+            cell.classList.remove('reserved', 'partially-reserved');
+            cell.textContent = ''; // Clear text
+            cell.style.backgroundColor = ''; // Reset background color
+            cell.onclick = () => handleTimeSlotClick(cell); // Re-enable clicking
+        });
+
+        // Apply reservation data to each cell based on fetched data
+        availabilityData.forEach(day => {
+            const { date, reserved_times, status } = day;
+            reserved_times.forEach(time => {
+                const cell = document.querySelector(`[data-date="${date}"][data-time="${time.split(':')[0]}:00"]`);
+                if (cell) {
+                    if (status === 'red') {
+                        cell.classList.add('reserved'); // Mark as reserved
+                        cell.textContent = 'Fully Booked';
+                        cell.style.backgroundColor = '#ff4d4d'; // Red for fully booked
+                        cell.onclick = null; // Disable clicking
+                    } else if (status === 'orange') {
+                        cell.classList.add('partially-reserved'); // Partially reserved
+                        cell.textContent = 'Partially Booked';
+                        cell.style.backgroundColor = '#ffb84d'; // Orange for partial
+                        cell.onclick = () => alert('This slot is partially reserved.'); // Disable clicking for partial
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        console.error('Error fetching reservations:', error);
+    }
+}
+
+function blockLunchSlots() {
+    const lunchCells = document.querySelectorAll('[data-time="12:00"]');
+    lunchCells.forEach(cell => {
+        cell.classList.remove('available');
+        cell.classList.add('lunch-time');
+        cell.textContent = 'Lunch Time';
+        cell.style.backgroundColor = '#cccccc'; // Greyed out for lunch time
+        cell.onclick = null; // Disable clicking for lunch
+    });
+}
+
+// Handle form submission and reservation processing
+document.getElementById('reservation-form').addEventListener('submit', async (event) => {
+    event.preventDefault();
+    const date = document.getElementById('Date').value;
+    const time = document.getElementById('Time').value;
+
+    if (!date || !time) {
+        alert('Please select a valid date and time.');
+        return;
+    }
+
+    try {
+        const response = await fetch('http://localhost/navigation%20bar/server/availability.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ date, time })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            alert(result.message);
+            const cell = document.querySelector(`[data-date="${date}"][data-time="${time}"]`);
+            if (cell) {
+                cell.classList.remove('available');
+                cell.classList.add('reserved');
+                cell.textContent = 'Reserved'; // Display as reserved
+                cell.style.backgroundColor = '#ff4d4d'; // Red for fully reserved
+            }
+            fetchReservations(); // Refresh reservations after a successful booking
+        } else {
+            alert(result.message);
+        }
+    } catch (error) {
+        console.error('Error submitting reservation:', error);
+        alert('There was an error processing your reservation. Please try again later.');
+    }
+});
+
+function getDateString(dayOffset) {
+    const today = new Date();
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + dayOffset); 
+    return targetDate.toISOString().split('T')[0]; 
+}

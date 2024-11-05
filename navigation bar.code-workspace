@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "navigation bar",
+			"path": "."
+		},
+		{
+			"name": "public",
+			"path": "../table/public"
+		}
+	],
+	"settings": {}
+}

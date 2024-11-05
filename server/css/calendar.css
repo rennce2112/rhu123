@@ -1,0 +1,83 @@
+.past-date {
+  background-color: #e0e0e0 !important;
+  color: #999;
+  cursor: not-allowed;
+}
+
+.calendar-header th.past-date {
+  background-color: #cccccc;
+  color: #666;
+}
+
+td[data-time] {
+  position: relative;
+  height: 25px;
+  transition: background-color 0.3s;
+  text-align: center;
+  font-size: 0.9em;
+}
+
+.hour-cell {
+  background-color: #f5f5f5;
+  font-weight: bold;
+  vertical-align: middle;
+}
+
+td[data-time]:hover:not(.past-date):not(.lunch-time):not(.fully-booked) {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.selected {
+  outline: 2px solid #4CAF50;
+  outline-offset: -2px;
+}
+
+.available {
+  background-color: #b3e0ff !important;
+}
+
+.partially-booked {
+  background-color: #ffa64d !important;
+  color: white;
+}
+
+.mostly-booked {
+  background-color: #ff8533 !important;
+  color: white;
+}
+
+.fully-booked {
+  background-color: #ff4d4d !important;
+  color: white;
+  cursor: not-allowed;
+}
+
+.lunch-time {
+  background-color: #cccccc !important;
+  color: #666;
+  cursor: not-allowed;
+}
+
+/* Add tooltip styles */
+td[data-time]::after {
+  content: attr(data-duration-left);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+td[data-time]:hover::after {
+  visibility: visible;
+  opacity: 1;
+  color: #ff4d4d;
+}
